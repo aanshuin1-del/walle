@@ -180,6 +180,19 @@ contract PoolUnit {
         if (ok || !_is(data, "UnknownRoot()")) revert Unexpected(data);
     }
 
+    function test_solvency_balance_equals_live_notes() external {
+        pool.deposit{value: 0.1 ether}(0.1 ether, uint256(31));
+        pool.deposit{value: 1 ether}(1 ether, uint256(32));
+        pool.deposit{value: 10 ether}(10 ether, uint256(33));
+        if (address(pool).balance != 11.1 ether) revert Unexpected("after-deposit");
+        uint256 root = pool.rootHistory(1 ether, 0);
+        (bool ok, bytes memory data) = _withdraw(1 ether, root, 32, address(0xBEEF), address(0xCAFE), 0.2 ether);
+        if (!ok) revert Unexpected(data);
+        uint256 expected = pool.liveSetSize(0.1 ether) * 0.1 ether + pool.liveSetSize(1 ether) * 1 ether
+            + pool.liveSetSize(10 ether) * 10 ether + pool.liveSetSize(100 ether) * 100 ether;
+        if (address(pool).balance != expected || expected != 10.1 ether) revert Unexpected("solvency");
+    }
+
     function test_withdraw_reverts_NullifierUsed_on_second_spend() external {
         pool.deposit{value: 1 ether}(1 ether, uint256(6));
         uint256 root = pool.rootHistory(1 ether, 0);

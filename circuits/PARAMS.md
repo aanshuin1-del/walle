@@ -56,6 +56,6 @@ sha256 of the snarkjs export `contracts/Groth16Verifier.sol`: `34cf59246b19f647b
 
 sha256 of `test/fixtures/valid_proof.json`: `a059175ffabf276b24113e7a3300c4d1360b9e0d8c6d45d88f0ea23c0e1c4d83`
 
-Local dev ceremony. Not sufficient for mainnet.
+Local dev ceremony. Not sufficient for mainnet. The trust status of this ceremony, the contributor labels, and the missing `.zkey` transcript hash are in `docs/CEREMONY.md`.
 
 If you change withdraw.circom, regenerate the r1cs, the ceremony, contracts/Groth16Verifier.sol, test/fixtures/valid_proof.json, and test/fixtures/circuit_hash.txt. The test_CircuitHash test enforces this.

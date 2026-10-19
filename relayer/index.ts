@@ -1,15 +1,6 @@
-import { Contract, JsonRpcProvider, Wallet, isAddress } from "ethers";
-
-const abi = [
-  "function withdraw(uint256 denomination,uint256 root,uint256 nullifierHash,address recipient,address relayer,uint256 relayerFee,uint256[8] proof)",
-];
-
-const denominations = new Set<bigint>([
-  100000000000000000n,
-  1000000000000000000n,
-  10000000000000000000n,
-  100000000000000000000n,
-]);
+import { Wallet, isAddress } from "ethers";
+import { NonceBook } from "./policy.ts";
+import { connectProvider, parseRequest, submitWithdrawal } from "./submit.ts";
 
 function env(name: string): string {
   const value = process.env[name];
@@ -25,15 +16,6 @@ function reject(): never {
   process.exit(1);
 }
 
-function asBigint(value: unknown): bigint {
-  if (typeof value !== "string" || value.length === 0) reject();
-  try {
-    return BigInt(value);
-  } catch {
-    reject();
-  }
-}
-
 async function readStdin(): Promise<string> {
   let raw = "";
   for await (const chunk of process.stdin) raw += chunk.toString();
@@ -42,10 +24,17 @@ async function readStdin(): Promise<string> {
 
 async function main(): Promise<void> {
   const key = env("RELAYER_KEY");
-  const minFee = asBigint(env("MIN_FEE"));
-  const rpcUrl = env("RPC_URL");
+  const minFee = (() => {
+    try {
+      return BigInt(env("MIN_FEE"));
+    } catch {
+      reject();
+    }
+  })();
   const poolAddress = env("POOL_ADDRESS");
   if (!isAddress(poolAddress)) reject();
+  const urls = [env("RPC_URL")];
+  if (process.env.RPC_URL_FALLBACK) urls.push(process.env.RPC_URL_FALLBACK);
 
   let body: unknown;
   try {
@@ -53,44 +42,28 @@ async function main(): Promise<void> {
   } catch {
     reject();
   }
-  if (typeof body !== "object" || body === null) reject();
-  const request = body as Record<string, unknown>;
+  const request = parseRequest(body, minFee);
+  if (!request) reject();
 
-  const denomination = asBigint(request.denomination);
-  const root = asBigint(request.root);
-  const nullifierHash = asBigint(request.nullifierHash);
-  const relayerFee = asBigint(request.relayerFee);
-  if (!denominations.has(denomination)) reject();
-  if (relayerFee < minFee) reject();
-  if (typeof request.recipient !== "string" || !isAddress(request.recipient)) reject();
-  if (!Array.isArray(request.proof) || request.proof.length !== 8) reject();
-  const proof = request.proof.map((item) => asBigint(item));
-
+  const provider = await connectProvider(urls);
+  if (!provider) {
+    console.log("rpc unavailable");
+    process.exit(1);
+  }
   let wallet: Wallet;
   try {
-    wallet = new Wallet(key, new JsonRpcProvider(rpcUrl));
+    wallet = new Wallet(key, provider);
   } catch {
     reject();
   }
   if (wallet.address.toLowerCase() === request.recipient.toLowerCase()) reject();
-
-  const pool = new Contract(poolAddress, abi, wallet);
-  try {
-    const tx = await pool.withdraw(
-      denomination,
-      root,
-      nullifierHash,
-      request.recipient,
-      wallet.address,
-      relayerFee,
-      proof,
-    );
-    console.log("submitted");
-    console.log(tx.hash);
-  } catch {
+  const hash = await submitWithdrawal(provider, wallet, poolAddress, request, new NonceBook());
+  if (!hash) {
     console.log("submit failed");
     process.exit(1);
   }
+  console.log("submitted");
+  console.log(hash);
 }
 
 main();

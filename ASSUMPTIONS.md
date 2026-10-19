@@ -98,4 +98,6 @@ Mainnet use of this pool requires a multi-party ceremony in which soundness hold
 
 The verifier accepts proofs only for POOL_ID = 0x54776973746572. Changing POOL_ID requires a new circuit and a new verifier.
 
-PoseidonT3 is a from-scratch implementation matching circomlib. It has not been independently audited. poseidon-solidity is an audited alternative.
+`contracts/lib/PoseidonT3.sol` is the in-repository `Poseidon(2)` implementation. `test/PoseidonTable.t.sol` checks all 81 `POSEIDON_C(3)` words against circomlib, and `test/PoseidonVectors.t.sol` checks twelve circom witnesses. The pinned source is circomlib 2.0.5 commit `cff5ab6288b55ef23602221694a6a38a0239dcc0`, recorded in `foundry.toml`.
+
+The public repository `chancehudson/poseidon-solidity` states in its README that its implementation has not been audited. This repository does not replace `PoseidonT3` with that package. A swap would drop the constant-table lock without adding an audit.

@@ -1,3 +1,9 @@
+# Poseidon source pin. Round structure and constants are circomlib 2.0.5,
+# commit cff5ab6288b55ef23602221694a6a38a0239dcc0 (tag v2.0.5).
+# circuits/poseidon.circom sha256 2582464669b69827164bd08ee0337997e1957f2ab4f00cdd86d533ca5e9d9234
+# circuits/poseidon_constants.circom sha256 94c9e4b5ea891ab4d1ba626f1d719f8c661014d9b628f6096c803f75f39e3eee
+# chancehudson/poseidon-solidity is not pinned. Its README says that code has not been audited.
+
 [profile.default]
 src = "contracts"
 out = "out"

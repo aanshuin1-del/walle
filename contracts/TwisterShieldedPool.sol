@@ -39,7 +39,8 @@ contract TwisterShieldedPool {
     /// @notice Spent nullifier hashes, per denomination.
     mapping(uint256 denomination => mapping(uint256 nullifierHash => bool spent)) private _nullifierUsed;
 
-    /// @notice Notes of this denomination deposited and not yet withdrawn. This is the set size.
+    /// @notice Notes of this denomination deposited and not yet withdrawn.
+    /// @dev A count of live notes. The contract does not compute an anonymity score from it, and a larger count is not a proof that a withdrawal is unlinkable.
     mapping(uint256 denomination => uint256 count) public liveSetSize;
 
     /// @notice A commitment was inserted. This event has no depositor field.
