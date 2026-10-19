@@ -88,7 +88,7 @@ A local dev ceremony is NOT sufficient for mainnet.
 
 The powers-of-tau and phase-2 commands for a development machine are written in `circuits/PARAMS.md`. Running them produces a structured reference string that makes Groth16's soundness depend on one operator deleting the toxic waste. That operator can keep `tau` and the phase-2 randomness and forge proofs. A file on a laptop, a shell history entry, or a core dump is enough. There is no second party who would notice.
 
-Mainnet use of this pool requires a multi-party ceremony in which soundness holds as long as at least one participant destroys their contribution. This repository does not run that ceremony, does not publish a production reference string, and does not check in a verifier generated from a local `zkey`.
+Mainnet use of this pool requires a multi-party ceremony in which soundness holds as long as at least one participant destroys their contribution. This repository does not run that ceremony and does not publish a production reference string. `contracts/Groth16Verifier.sol` is generated from the local ceremony in `circuits/PARAMS.md`. Local dev ceremony. Not sufficient for mainnet.
 
 ## What This Does Not Assume
 

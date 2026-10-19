@@ -11,7 +11,8 @@ A local dev ceremony is NOT sufficient for mainnet. This repository does not cla
 - `THREAT_MODEL.md`, `ASSUMPTIONS.md` — adversaries and primitive assumptions.
 - `contracts/` — `TwisterShieldedPool` and the interfaces it calls. The two bridge interfaces have no functions.
 - `circuits/` — `withdraw.circom`.
-- `test/LinkageSuite.t.sol` — eight linkage heuristics.
+- `test/LinkageBaselines.t.sol` — eight linkage heuristics, with the baselines.
+- `test/LinkageIntegration.t.sol` — the same eight heuristics against a deployed pool.
 - `relayer/` — one-shot submitter.
 - `web/` — static reference client.
 

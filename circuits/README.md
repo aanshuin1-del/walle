@@ -53,11 +53,7 @@ Proves the public nullifier hash is the one-input Poseidon image of the same nul
 
 If removed, `nullifierHash` is not bound to the note. The contract would mark a hash the prover can change on every call, so one deposit can be withdrawn more than once. The prover could also publish a hash already used by another note and make that note unspendable.
 
-### G4. `privateDenomination == denomination`
-
-Proves the denomination inside the commitment is the public denomination the contract pays and the denomination whose tree the root was taken from.
-
-If removed, the hash can use a different denomination than the public input. A depositor chooses the commitment bytes, so they can insert a leaf whose preimage denomination is not the denomination of the tree they paid into. The contract would still pay its function argument, but the proof would no longer show that the note was computed for that amount. Two notes that should be separated by denomination would no longer be separated inside the proof.
+G4 — Denomination alias. The compiler substitutes privateDenomination with the public signal, so this group adds no r1cs constraints. Soundness is preserved because the commitment hash in G1 is then computed with the public denomination; a prover cannot present a leaf whose commitment was computed with a different denomination. r1cs info shows 43 declared private inputs and 42 in the witness; the missing slot is privateDenomination (symbol index -1).
 
 ### G5. `pathIndices[i] * (pathIndices[i] - 1) == 0`
 

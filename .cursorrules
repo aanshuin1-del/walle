@@ -1,0 +1,37 @@
+# Twister spec lock
+
+"Unlinkable" means: for any probabilistic polynomial-time adversary with full access to all on-chain data, the advantage of distinguishing "withdrawal W came from deposit D1" from "W came from D2" is negligible in the security parameter, given an anonymity set of size >= K, under the assumptions in ASSUMPTIONS.md.
+
+Do not paraphrase that definition.
+
+Commitment: Poseidon(secret, nullifier, denomination, poolId). Merkle tree depth 20. Poseidon hasher. Root history 100. Nullifier hash: Poseidon(nullifier).
+
+Denominations ONLY {0.1, 1, 10, 100} ETH in wei. No arbitrary amounts. No splits.
+
+Groth16. Public inputs in order: root, nullifierHash, denomination, recipient, relayer. Private: secret, nullifier, denomination, pathElements[20], pathIndices[20].
+
+Deposit event: Deposit(uint256 indexed denomination, uint256 commitment, uint32 leafIndex). Never a depositor field.
+
+Withdrawal event: Withdrawal(uint256 indexed denomination, uint256 nullifierHash, address recipient, address relayer, uint256 relayerFee). Never a commitment field.
+
+Custom errors: NotDenomination, NullifierUsed, UnknownRoot, InvalidProof, FeeExceedsDenomination, RelayerIsRecipient, TreeFull, TransferFailed.
+
+liveSetSize[denomination] increments on deposit and decrements on withdraw. If relayer == recipient, withdraw must revert. relayerFee must be strictly less than denomination.
+
+Checks-effects-interactions: all state updates before any transfer. Pay relayer, then recipient.
+
+contracts/interfaces/IWrappedXMRMinter.sol and contracts/interfaces/IShieldedPool.sol are interface only. Top-of-file comment exactly: "Phase 2 boundary. Not implemented in this repo."
+
+Inherit nothing. No Ownable, Safe, upgradeability, admin, or pause. No require strings in TwisterShieldedPool.sol. Imports in contracts/ are the interface files, contracts/lib/PoseidonT3.sol, and contracts/Groth16Verifier.sol.
+
+Forbidden:
+
+- The word "anonymous" without an adjacent qualifier.
+- A depositor field on Deposit.
+- A commitment field on Withdrawal.
+- Privacy, linkability, or obsidian scores.
+- Third-party analytics, cookies, telemetry, or external APIs in web/.
+- "Safe 2.0". If Safe is mentioned, it is 1.4.1.
+- Any positive claim of being production-ready or audited before Phase 5. The required disclaimer 'It is not audited' in Phase 5 is permitted.
+- Features not in the current phase.
+- Files that log recipient, nullifierHash, or proof.

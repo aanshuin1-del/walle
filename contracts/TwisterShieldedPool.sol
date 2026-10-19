@@ -77,6 +77,15 @@ contract TwisterShieldedPool {
     /// @notice `relayerFee` is not strictly less than `denomination`.
     error FeeExceedsDenomination();
 
+    /// @notice `relayer` and `recipient` are the same account.
+    error RelayerIsRecipient();
+
+    /// @notice This denomination's tree already holds 2^20 leaves.
+    error TreeFull();
+
+    /// @notice The ether transfer to `relayer` or `recipient` returned false.
+    error TransferFailed();
+
     /// @notice Bind the hasher and the verifier. Both stay fixed.
     /// @param poseidon_ Circomlib `Poseidon(2)` implementation.
     /// @param verifier_ Groth16 verifier for the withdraw circuit.
@@ -106,8 +115,8 @@ contract TwisterShieldedPool {
     /// @notice Pay `relayerFee` to `relayer` and the remainder of `denomination` to `recipient`.
     /// @dev Public inputs passed to the verifier are `[root, nullifierHash, denomination, uint256(uint160(recipient)), uint256(uint160(relayer))]`.
     ///      Checks run first. The nullifier is marked used and `liveSetSize` is decremented before either transfer.
-    ///      `relayer` is paid, then `recipient`. `relayer == recipient` reverts with empty data because that case has no error in the spec lock.
-    ///      A full tree and a failed transfer also revert with empty data, for the same reason.
+    ///      `relayer` is paid, then `recipient`. `relayer == recipient` reverts with `RelayerIsRecipient`.
+    ///      A full tree reverts with `TreeFull`. A failed transfer reverts with `TransferFailed`.
     ///      Emits `Withdrawal` with no commitment field.
     ///      "Unlinkable" means: for any probabilistic polynomial-time adversary with full access to all on-chain data, the advantage of distinguishing "withdrawal W came from deposit D1" from "W came from D2" is negligible in the security parameter, given an anonymity set of size >= K, under the assumptions in ASSUMPTIONS.md.
     /// @param denomination Supported amount in wei. Also the third public input.
@@ -121,10 +130,10 @@ contract TwisterShieldedPool {
         uint256 denomination,
         uint256 root,
         uint256 nullifierHash,
-        // address(0) is a legal recipient when it differs from relayer. A zero-address
-        // ban would reject withdrawals the spec allows.
+        // Unavoidable: address(0) is a legal recipient when it differs from relayer. A zero-address ban would reject a withdrawal the denomination rules allow.
         // forge-lint: disable-next-line(missing-zero-check)
         address recipient,
+        // Unavoidable: address(0) is a legal relayer when it differs from recipient. A zero-address ban would reject a withdrawal the denomination rules allow.
         // forge-lint: disable-next-line(missing-zero-check)
         address relayer,
         uint256 relayerFee,
@@ -132,7 +141,7 @@ contract TwisterShieldedPool {
     ) external {
         if (!_isKnownRoot(denomination, root)) revert UnknownRoot();
         if (_nullifierUsed[denomination][nullifierHash]) revert NullifierUsed();
-        if (relayer == recipient) revert();
+        if (relayer == recipient) revert RelayerIsRecipient();
         if (relayerFee >= denomination) revert FeeExceedsDenomination();
 
         uint256[5] memory publicInputs = [
@@ -147,18 +156,26 @@ contract TwisterShieldedPool {
         _nullifierUsed[denomination][nullifierHash] = true;
         liveSetSize[denomination] -= 1;
 
-        // Spec requires paying the caller-supplied relayer, then the caller-supplied recipient.
+        // Unavoidable: withdraw must send wei to the caller-supplied relayer. The spec has no allowlist, so the lint's suggested fix would reject a payment the function is required to make.
         // forge-lint: disable-next-line(arbitrary-send-eth)
         (bool paidRelayer,) = relayer.call{value: relayerFee}("");
-        if (!paidRelayer) revert();
+        if (!paidRelayer) revert TransferFailed();
+        // Unavoidable: withdraw must send the remainder to the caller-supplied recipient. The spec has no allowlist.
         // forge-lint: disable-next-line(arbitrary-send-eth)
         (bool paidRecipient,) = recipient.call{value: denomination - relayerFee}("");
-        if (!paidRecipient) revert();
+        if (!paidRecipient) revert TransferFailed();
 
-        // Both calls revert the transaction on failure, so this log is only
-        // observable when both payments have succeeded.
+        // Unavoidable: forge-lint reentrancy-events flags any log after an external call. This log is placed after both transfers so the trace order is payment, then Withdrawal. Both calls revert the transaction on failure, so the log is still absent when a payment fails.
         // forge-lint: disable-next-line(reentrancy-events)
         emit Withdrawal(denomination, nullifierHash, recipient, relayer, relayerFee);
+    }
+
+    /// @notice Root written at `slot` in this denomination's ring buffer. Unused slots are 0.
+    /// @param denomination Tree key.
+    /// @param slot Index in the ring buffer, from 0 through `ROOT_HISTORY - 1`.
+    /// @return The stored root, or 0 when that slot has not been written.
+    function rootHistory(uint256 denomination, uint256 slot) external view returns (uint256) {
+        return _rootHistory[denomination][slot];
     }
 
     /// @notice Insert `commitment` at the next leaf and store the resulting root.
@@ -167,7 +184,7 @@ contract TwisterShieldedPool {
     /// @return leafIndex Index the leaf was written at.
     function _insert(uint256 denomination, uint256 commitment) private returns (uint32 leafIndex) {
         uint32 index = _nextIndex[denomination];
-        if (uint256(index) >= (uint256(1) << MERKLE_DEPTH)) revert();
+        if (uint256(index) >= (uint256(1) << MERKLE_DEPTH)) revert TreeFull();
 
         leafIndex = index;
         uint256 current = commitment;
@@ -216,7 +233,7 @@ contract TwisterShieldedPool {
         uint256[2] memory input;
         input[0] = left;
         input[1] = right;
-        // Bounded by MERKLE_DEPTH (20). The callee is the immutable hasher, not a user address.
+        // Unavoidable: each tree level calls the immutable external hasher. The loop bound is MERKLE_DEPTH (20). The hasher is a separate contract, so the call cannot be removed from the insertion loop.
         // forge-lint: disable-next-line(calls-loop)
         return poseidon.poseidon(input);
     }

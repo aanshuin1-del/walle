@@ -1,6 +1,6 @@
 out/
 cache/
-lib/
+/lib/
 node_modules/
 circuits/build/
 *.r1cs

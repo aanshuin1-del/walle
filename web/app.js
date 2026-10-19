@@ -286,6 +286,9 @@ function boot() {
   var pool = document.getElementById("pool");
   var denom = document.getElementById("denom");
   var withdraw = document.getElementById("withdraw");
+  withdraw.textContent = "Check set size and preview.";
+  document.getElementById("withdrawHelp").textContent =
+    "This client reads the pool. It does not build a Groth16 proof and does not broadcast.";
 
   function invalidate() {
     requestSerial += 1;
