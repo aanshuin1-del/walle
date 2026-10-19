@@ -8,7 +8,7 @@ interface PoseidonVm {
     function parseJsonUintArray(string calldata json, string calldata key) external pure returns (uint256[] memory);
 }
 
-/// @notice The 57 partial-round constants in PoseidonT3 match circomlib POSEIDON_C(3)[15..71].
+/// @notice All 81 POSEIDON_C(3) words in PoseidonT3 match the circomlib fixture.
 contract PoseidonTable {
     error Mismatch(uint256 index, uint256 got, uint256 expected);
 
@@ -18,13 +18,24 @@ contract PoseidonTable {
         PoseidonT3 hasher = new PoseidonT3();
         bytes memory packed = hasher.packedRoundConstants();
         string memory json = VM.readFile("test/fixtures/circomlib_poseidon_t3_constants.json");
-        uint256[] memory expected = VM.parseJsonUintArray(json, ".partialRoundConstants");
-        if (expected.length != 57) revert Mismatch(57, expected.length, 57);
-        uint256[57] memory got;
-        for (uint256 i = 0; i < 57; i++) {
-            got[i] = _word(packed, 15 + i);
-            if (got[i] != expected[i]) revert Mismatch(i, got[i], expected[i]);
+        uint256[] memory fixture = VM.parseJsonUintArray(json, ".constants");
+        assertEq(fixture.length, 81, "fixture must contain all 81 t=3 constants");
+        for (uint256 i = 0; i < 15; i++) {
+            uint256 got = _word(packed, i);
+            if (got != fixture[i]) revert Mismatch(i, got, fixture[i]);
         }
+        for (uint256 i = 15; i < 72; i++) {
+            uint256 got = _word(packed, i);
+            if (got != fixture[i]) revert Mismatch(i, got, fixture[i]);
+        }
+        for (uint256 i = 72; i < 81; i++) {
+            uint256 got = _word(packed, i);
+            if (got != fixture[i]) revert Mismatch(i, got, fixture[i]);
+        }
+    }
+
+    function assertEq(uint256 a, uint256 b, string memory message) private pure {
+        if (a != b) revert(message);
     }
 
     function _word(bytes memory packed, uint256 index) private pure returns (uint256 word) {

@@ -4,7 +4,7 @@ These files are generated from circomlib. They are not produced by calling `Pose
 
 ## `circomlib_poseidon_t3_constants.json`
 
-circomlib 2.0.5, commit `cff5ab6288b55ef23602221694a6a38a0239dcc0` (tag v2.0.5). The numbers are `POSEIDON_C(3)` indices 15 through 71 from `circuits/poseidon_constants.circom` in that commit. The copy installed at `circuits/node_modules/circomlib` matches that file byte for byte.
+circomlib 2.0.5, commit `cff5ab6288b55ef23602221694a6a38a0239dcc0` (tag v2.0.5). The `constants` array is all 81 `POSEIDON_C(3)` words, indices 0 through 80, from `circuits/poseidon_constants.circom` in that commit. The copy installed at `circuits/node_modules/circomlib` matches that file byte for byte.
 
 From the repository root, after `npm install circomlib@2.0.5` inside `circuits/`:
 
@@ -12,7 +12,7 @@ From the repository root, after `npm install circomlib@2.0.5` inside `circuits/`
 node test/fixtures/prepare.mjs
 ```
 
-`prepare.mjs` parses the circom source and writes `partialRoundConstants`. It does not read `contracts/lib/PoseidonT3.sol`.
+`prepare.mjs` parses the circom source and writes `constants`. It does not read `contracts/lib/PoseidonT3.sol`.
 
 ## `poseidon_vectors.json`
 

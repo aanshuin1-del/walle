@@ -193,14 +193,14 @@ fs.writeFileSync(
   ) + "\n",
 );
 
-const partial = tables(3).C.slice(15, 72);
-if (partial.length !== 57) throw new Error("partial length");
+const constants = tables(3).C;
+if (constants.length !== 81) throw new Error(`C length ${constants.length}`);
 fs.writeFileSync(
   path.join(fixtures, "circomlib_poseidon_t3_constants.json"),
   JSON.stringify(
     {
-      source: "circomlib 2.0.5 POSEIDON_C(3), partial-round constants at indices 15 through 71",
-      partialRoundConstants: partial.map((x) => x.toString()),
+      source: "circomlib 2.0.5 POSEIDON_C(3), all 81 round constants, indices 0 through 80",
+      constants: constants.map((x) => x.toString()),
     },
     null,
     2,
