@@ -514,6 +514,11 @@ contract PoseidonT3 is IPoseidonT3 {
         }
     }
 
+    /// @notice Test-only. Packed `POSEIDON_C(3)` words, 32 bytes each, big-endian. The pool does not call this.
+    function packedRoundConstants() external pure returns (bytes memory) {
+        return C_PACKED;
+    }
+
     /// @dev Circomlib `MixLast` for output column 0. No round constant is added after the last S-box.
     function _mixLast(uint256[3] memory state, uint256[] memory m) private pure returns (uint256 lc) {
         for (uint256 j = 0; j < T; j++) {

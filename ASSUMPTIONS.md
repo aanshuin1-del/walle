@@ -95,3 +95,7 @@ Mainnet use of this pool requires a multi-party ceremony in which soundness hold
 - It does not assume the RPC is honest. The endpoint is chosen by the user and can lie about `liveSetSize`, hide events, record the caller's network address, or refuse to broadcast. The unlinkability definition is about an adversary who has the real chain. A false view of the chain is outside that definition and is not ruled out by the proof.
 - It does not assume the frontend is uncompromised. The script that builds or holds `secret` and `nullifier` can send them anywhere if someone else served that script. Zero knowledge of the resulting proof does not help after the witness has been copied. The reference page is static and has no telemetry. That is a reduction in surface, not an assumption that the bytes are intact.
 - It does not assume the relayer is non-colluding. The relayer sees the recipient and the nullifier hash before the transaction is included, and can refuse to submit. Collusion with a deposit-time observer adds timing and denomination. The proof is required not to reveal the witness to the relayer; that requirement is the Groth16 zero-knowledge assumption above, not an assumption that the relayer is honest or working alone.
+
+The verifier accepts proofs only for POOL_ID = 0x54776973746572. Changing POOL_ID requires a new circuit and a new verifier.
+
+PoseidonT3 is a from-scratch implementation matching circomlib. It has not been independently audited. poseidon-solidity is an audited alternative.

@@ -176,6 +176,22 @@ contract PoolUnit {
         if (ok || !_is(data, "NullifierUsed()")) revert Unexpected(data);
     }
 
+    function test_withdraw_reverts_InvalidRecipient_when_recipient_is_zero() external {
+        pool.deposit{value: 1 ether}(1 ether, uint256(21));
+        uint256 root = pool.rootHistory(1 ether, 0);
+        (bool ok, bytes memory data) = _withdraw(1 ether, root, 21, address(0), address(0xCAFE), 0);
+        bytes memory expected = abi.encodeWithSignature("InvalidRecipient(address)", address(0));
+        if (ok || keccak256(data) != keccak256(expected)) revert Unexpected(data);
+    }
+
+    function test_withdraw_reverts_InvalidRelayer_when_relayer_is_zero() external {
+        pool.deposit{value: 1 ether}(1 ether, uint256(22));
+        uint256 root = pool.rootHistory(1 ether, 0);
+        (bool ok, bytes memory data) = _withdraw(1 ether, root, 22, address(0xBEEF), address(0), 0);
+        bytes memory expected = abi.encodeWithSignature("InvalidRelayer(address)", address(0));
+        if (ok || keccak256(data) != keccak256(expected)) revert Unexpected(data);
+    }
+
     function test_withdraw_reverts_RelayerIsRecipient() external {
         pool.deposit{value: 1 ether}(1 ether, uint256(8));
         uint256 root = pool.rootHistory(1 ether, 0);

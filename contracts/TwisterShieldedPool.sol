@@ -86,6 +86,14 @@ contract TwisterShieldedPool {
     /// @notice The ether transfer to `relayer` or `recipient` returned false.
     error TransferFailed();
 
+    /// @notice `recipient` is the zero address.
+    /// @param recipient The zero address that was passed.
+    error InvalidRecipient(address recipient);
+
+    /// @notice `relayer` is the zero address.
+    /// @param relayer The zero address that was passed.
+    error InvalidRelayer(address relayer);
+
     /// @notice Bind the hasher and the verifier. Both stay fixed.
     /// @param poseidon_ Circomlib `Poseidon(2)` implementation.
     /// @param verifier_ Groth16 verifier for the withdraw circuit.
@@ -115,32 +123,32 @@ contract TwisterShieldedPool {
     /// @notice Pay `relayerFee` to `relayer` and the remainder of `denomination` to `recipient`.
     /// @dev Public inputs passed to the verifier are `[root, nullifierHash, denomination, uint256(uint160(recipient)), uint256(uint160(relayer))]`.
     ///      Checks run first. The nullifier is marked used and `liveSetSize` is decremented before either transfer.
-    ///      `relayer` is paid, then `recipient`. `relayer == recipient` reverts with `RelayerIsRecipient`.
+    ///      `recipient == address(0)` reverts with `InvalidRecipient`. `relayer == address(0)` reverts with `InvalidRelayer`.
+    ///      Those checks run before `relayer == recipient`, which reverts with `RelayerIsRecipient`.
+    ///      `relayer` is paid, then `recipient`.
     ///      A full tree reverts with `TreeFull`. A failed transfer reverts with `TransferFailed`.
-    ///      Emits `Withdrawal` with no commitment field.
+    ///      Emits `Withdrawal` before the two transfers. The event has no commitment field.
     ///      "Unlinkable" means: for any probabilistic polynomial-time adversary with full access to all on-chain data, the advantage of distinguishing "withdrawal W came from deposit D1" from "W came from D2" is negligible in the security parameter, given an anonymity set of size >= K, under the assumptions in ASSUMPTIONS.md.
     /// @param denomination Supported amount in wei. Also the third public input.
     /// @param root Root that must still be in this denomination's ring buffer.
     /// @param nullifierHash Second public input. Stored as spent before ether moves.
-    /// @param recipient Account that receives `denomination - relayerFee`. Must differ from `relayer`.
-    /// @param relayer Account that receives `relayerFee`. Must differ from `recipient`.
+    /// @param recipient Account that receives `denomination - relayerFee`. Must be nonzero and differ from `relayer`.
+    /// @param relayer Account that receives `relayerFee`. Must be nonzero and differ from `recipient`.
     /// @param relayerFee Wei paid to `relayer`. Must be strictly less than `denomination`.
     /// @param proof Groth16 proof as `[a0, a1, b00, b01, b10, b11, c0, c1]`.
     function withdraw(
         uint256 denomination,
         uint256 root,
         uint256 nullifierHash,
-        // Unavoidable: address(0) is a legal recipient when it differs from relayer. A zero-address ban would reject a withdrawal the denomination rules allow.
-        // forge-lint: disable-next-line(missing-zero-check)
         address recipient,
-        // Unavoidable: address(0) is a legal relayer when it differs from recipient. A zero-address ban would reject a withdrawal the denomination rules allow.
-        // forge-lint: disable-next-line(missing-zero-check)
         address relayer,
         uint256 relayerFee,
         uint256[8] calldata proof
     ) external {
         if (!_isKnownRoot(denomination, root)) revert UnknownRoot();
         if (_nullifierUsed[denomination][nullifierHash]) revert NullifierUsed();
+        if (recipient == address(0)) revert InvalidRecipient(recipient);
+        if (relayer == address(0)) revert InvalidRelayer(relayer);
         if (relayer == recipient) revert RelayerIsRecipient();
         if (relayerFee >= denomination) revert FeeExceedsDenomination();
 
@@ -156,6 +164,8 @@ contract TwisterShieldedPool {
         _nullifierUsed[denomination][nullifierHash] = true;
         liveSetSize[denomination] -= 1;
 
+        emit Withdrawal(denomination, nullifierHash, recipient, relayer, relayerFee);
+
         // Unavoidable: withdraw must send wei to the caller-supplied relayer. The spec has no allowlist, so the lint's suggested fix would reject a payment the function is required to make.
         // forge-lint: disable-next-line(arbitrary-send-eth)
         (bool paidRelayer,) = relayer.call{value: relayerFee}("");
@@ -164,10 +174,6 @@ contract TwisterShieldedPool {
         // forge-lint: disable-next-line(arbitrary-send-eth)
         (bool paidRecipient,) = recipient.call{value: denomination - relayerFee}("");
         if (!paidRecipient) revert TransferFailed();
-
-        // Unavoidable: forge-lint reentrancy-events flags any log after an external call. This log is placed after both transfers so the trace order is payment, then Withdrawal. Both calls revert the transaction on failure, so the log is still absent when a payment fails.
-        // forge-lint: disable-next-line(reentrancy-events)
-        emit Withdrawal(denomination, nullifierHash, recipient, relayer, relayerFee);
     }
 
     /// @notice Root written at `slot` in this denomination's ring buffer. Unused slots are 0.

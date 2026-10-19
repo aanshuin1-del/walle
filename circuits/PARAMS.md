@@ -34,7 +34,7 @@ This repository does not run that ceremony.
 
 The development commands above were executed once with snarkjs 0.7.5 against this `withdraw.r1cs`. `powersoftau verify` printed `Powers of Tau Ok!` and `zkey verify` printed `ZKey Ok!`. The `.ptau`, `.zkey`, and `verification_key.json` from that run were deleted. They are not in this repository. Success of that run does not make the local ceremony sufficient for mainnet.
 
-The same commands were run again for the current `withdraw.r1cs`, and the Solidity verifier was exported. `powersoftau verify` printed `Powers of Tau Ok!` and `zkey verify` printed `ZKey Ok!`. Run from `circuits/` with snarkjs 0.7.5:
+The commands below were run again so `test/fixtures/valid_proof.json` could be proved against a zkey. snarkjs mixes operating-system randomness into `-e`, so this export is a different file from the earlier local run, whose zkey was deleted. `powersoftau verify` printed `Powers of Tau Ok!` and `zkey verify` printed `ZKey Ok!`. Run from `circuits/` with snarkjs 0.7.5:
 
 ```
 snarkjs powersoftau new bn128 14 pot14_0000.ptau -v
@@ -45,13 +45,15 @@ snarkjs zkey contribute withdraw_0000.zkey withdraw_0001.zkey --name="dev-2" -v 
 snarkjs zkey export verificationkey withdraw_0001.zkey verification_key.json
 snarkjs powersoftau verify pot14_final.ptau
 snarkjs zkey verify withdraw.r1cs pot14_final.ptau withdraw_0001.zkey
-snarkjs zkey export solidityverifier withdraw_0001.zkey /tmp/Groth16Verifier.generated.sol
+snarkjs zkey export solidityverifier withdraw_0001.zkey contracts/Groth16Verifier.sol
 ```
 
-sha256 of the generated file `/tmp/Groth16Verifier.generated.sol`: `ba7630704587b57d9804b3dbd008c39c4cbbd4e2ebc70bf2d1a2c30feb64f335`
+sha256 of the snarkjs export `contracts/Groth16Verifier.sol`: `34cf59246b19f647b413bb53e7ed6e8b7148b7c6be83c51b54c2bbc48bac546c`
 
-sha256 of `contracts/Groth16Verifier.sol` as checked in, after the `IVerifier` overload was added: `5e7b3168c16ad64400cab58c9bdf4eab63c72654b67644900fdc351766334556`
+`contracts/Groth16Verifier.sol` is that export with nothing added. `contracts/Groth16VerifierAdapter.sol` implements `IVerifier`, holds the verifier, and swaps the `pi_b` limbs the way `snarkjs zkey export soliditycalldata` does. `script/Deploy.s.sol` reads `PRIVATE_KEY`, `DENOMINATION`, and `COMMITMENT` from the environment and deploys PoseidonT3, Groth16Verifier, Groth16VerifierAdapter, then `TwisterShieldedPool` with the adapter. The `.ptau`, `.zkey`, and `verification_key.json` from this run were deleted.
 
-`contracts/Groth16Verifier.sol` is that file plus an `IVerifier` overload, so `new Groth16Verifier()` is the verifier passed to `TwisterShieldedPool`. The overload unpacks `[a0, a1, b00, b01, b10, b11, c0, c1]` and swaps the `pi_b` limbs the way `snarkjs zkey export soliditycalldata` does. The `.ptau`, `.zkey`, and `verification_key.json` from this run were deleted.
+`test/fixtures/generate.sh` runs `snarkjs wtns calculate`, then `snarkjs groth16 prove`, then writes `test/fixtures/valid_proof.json`.
+
+sha256 of `test/fixtures/valid_proof.json`: `a059175ffabf276b24113e7a3300c4d1360b9e0d8c6d45d88f0ea23c0e1c4d83`
 
 Local dev ceremony. Not sufficient for mainnet.

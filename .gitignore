@@ -7,4 +7,7 @@ circuits/build/
 *.sym
 *.wasm
 *_js/
+*.ptau
+*.zkey
+verification_key.json
 .DS_Store

@@ -14,7 +14,7 @@ Deposit event: Deposit(uint256 indexed denomination, uint256 commitment, uint32 
 
 Withdrawal event: Withdrawal(uint256 indexed denomination, uint256 nullifierHash, address recipient, address relayer, uint256 relayerFee). Never a commitment field.
 
-Custom errors: NotDenomination, NullifierUsed, UnknownRoot, InvalidProof, FeeExceedsDenomination, RelayerIsRecipient, TreeFull, TransferFailed.
+Custom errors: NotDenomination, NullifierUsed, UnknownRoot, InvalidProof, FeeExceedsDenomination, RelayerIsRecipient, TreeFull, TransferFailed, InvalidRecipient(address), InvalidRelayer(address).
 
 liveSetSize[denomination] increments on deposit and decrements on withdraw. If relayer == recipient, withdraw must revert. relayerFee must be strictly less than denomination.
 
@@ -22,7 +22,7 @@ Checks-effects-interactions: all state updates before any transfer. Pay relayer,
 
 contracts/interfaces/IWrappedXMRMinter.sol and contracts/interfaces/IShieldedPool.sol are interface only. Top-of-file comment exactly: "Phase 2 boundary. Not implemented in this repo."
 
-Inherit nothing. No Ownable, Safe, upgradeability, admin, or pause. No require strings in TwisterShieldedPool.sol. Imports in contracts/ are the interface files, contracts/lib/PoseidonT3.sol, and contracts/Groth16Verifier.sol.
+Inherit nothing. No Ownable, Safe, upgradeability, admin, or pause. No require strings in TwisterShieldedPool.sol. Imports in contracts/ are the interface files, contracts/lib/PoseidonT3.sol, contracts/Groth16Verifier.sol, and contracts/Groth16VerifierAdapter.sol.
 
 Forbidden:
 
