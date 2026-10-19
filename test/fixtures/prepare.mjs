@@ -139,7 +139,8 @@ component main = Main();
     execFileSync(snarkjs, ["wtns", "calculate", wasm, input, wtns], { stdio: "inherit" });
     execFileSync(snarkjs, ["wtns", "export", "json", wtns, json], { stdio: "inherit" });
     const witness = JSON.parse(fs.readFileSync(json, "utf8"));
-    outs.push(BigInt(witness[1]));
+    if (!Array.isArray(witness)) throw new Error("circom witness is not an array");
+    outs.push(witness);
   }
   return outs;
 }
@@ -166,10 +167,15 @@ for (let i = 0; i < 4; i++) {
 }
 const pairs = fixed.concat(random);
 const jsOut = pairs.map(([a, b]) => poseidon([a, b]));
-const circomOut = circomPoseidon2(pairs);
+const circomWitnesses = circomPoseidon2(pairs);
 for (let i = 0; i < pairs.length; i++) {
-  if (jsOut[i] !== circomOut[i]) {
-    throw new Error(`poseidon mismatch at ${i}: js ${jsOut[i]} circom ${circomOut[i]}`);
+  const witness = circomWitnesses[i];
+  if (BigInt(witness[0]) !== 1n) throw new Error(`witness[0] at ${i}`);
+  if (BigInt(witness[2]) !== pairs[i][0] || BigInt(witness[3]) !== pairs[i][1]) {
+    throw new Error(`witness inputs at ${i}`);
+  }
+  if (jsOut[i] !== BigInt(witness[1])) {
+    throw new Error(`poseidon mismatch at ${i}: js ${jsOut[i]} circom ${witness[1]}`);
   }
 }
 
@@ -180,11 +186,7 @@ fs.writeFileSync(
   JSON.stringify(
     {
       seed: seedLabel,
-      vectors: pairs.map(([left, right], i) => ({
-        left: left.toString(),
-        right: right.toString(),
-        hash: circomOut[i].toString(),
-      })),
+      vectors: circomWitnesses,
     },
     null,
     2,

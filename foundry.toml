@@ -5,7 +5,7 @@ libs = ["lib"]
 solc = "0.8.28"
 optimizer = true
 optimizer_runs = 200
-fs_permissions = [{ access = "read", path = "test/fixtures" }]
+fs_permissions = [{ access = "read", path = "test/fixtures" }, { access = "read", path = "circuits/withdraw.r1cs" }]
 
 [lint]
 # Raw snarkjs export. A suppression comment inside the file would change its sha256.

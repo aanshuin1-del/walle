@@ -85,3 +85,17 @@ For each group, make a copy of `withdraw.circom` with only that group's constrai
 | G6 | Still satisfies for a recipient and a relayer below `2^160`. Malicious witness: `recipient = 2^160`. A witness with `nullifierHash >= p` cannot be constructed; the field rejects it in the witness generator, which is the check for that half of G6. | Recipient witness satisfies the weakened circuit and fails `Num2Bits(160)` on the full circuit. | `wtns check` fails for the recipient witness. The `>= p` case fails while building the witness, on both circuits. |
 
 No test in this plan is implemented here. No proving key is generated here.
+
+## Round schedule
+
+`PoseidonT3` follows circomlib `Poseidon` for `t = 3`: `nRoundsF = 8` and `nRoundsP = 57`. The packed table `POSEIDON_C(3)` holds 81 field elements, `t * nRoundsF + nRoundsP`.
+
+Those 81 words are consumed as 5 full Arks, then 57 partial-round constants, then 3 full Arks. Inclusive indices:
+
+- `0` through `14`. Five full Arks, three words each. Ark 0 (indices 0–2) is added before any S-box. The next four Arks follow the four first-half full S-boxes, at indices 3–5, 6–8, 9–11, and 12–14. The linear mix after index 14 is `POSEIDON_P`.
+- `15` through `71`. One word per partial round, added only to `state[0]`. Partial round `r` reads index `(nRoundsF / 2 + 1) * t + r`, which is `15 + r`.
+- `72` through `80`. Three full Arks after the first three second-half full S-boxes, at indices 72–74, 75–77, and 78–80. The eighth full S-box is followed by `MixLast` and reads no further round constant.
+
+The first half stores `nRoundsF / 2 + 1 = 5` Arks because the permutation adds a constant vector before the first S-box and after each of the four first-half S-boxes. The second half stores `nRoundsF / 2 - 1 = 3` Arks because the last full S-box has no Ark after it. S-box rounds are still four full, 57 partial, and four full. The constant groups in the packed table are 5, 57, and 3.
+
+This is the control flow in circomlib `circuits/poseidon.circom` at commit `cff5ab6288b55ef23602221694a6a38a0239dcc0` (tag v2.0.5, 17 June 2022). The installed `poseidon.circom` and `poseidon_constants.circom` match that commit byte for byte. `contracts/lib/PoseidonT3.sol` uses the same offsets.

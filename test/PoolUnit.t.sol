@@ -138,6 +138,19 @@ contract PoolUnit {
         if (loggedCommitment != commitment || loggedIndex != leafIndex) revert Unexpected("data");
     }
 
+    function test_deposit_event_shape() external {
+        // If a depositor field is ever added, this test fails.
+        uint256 denomination = 1 ether;
+        VM.recordLogs();
+        pool.deposit{value: denomination}(denomination, 7);
+        Vm.Log[] memory logs = VM.getRecordedLogs();
+        if (logs.length != 1) revert Unexpected("log-count");
+        if (logs[0].topics.length != 2) revert Unexpected("topics");
+        if (logs[0].topics[0] != keccak256("Deposit(uint256,uint256,uint32)")) revert Unexpected("sig");
+        if (logs[0].topics[1] != bytes32(denomination)) revert Unexpected("denom");
+        if (logs[0].data.length != 64) revert Unexpected("data-len");
+    }
+
     function test_deposit_writes_root_history_getter() external {
         if (pool.rootHistory(1 ether, 0) != 0) revert Unexpected("pre");
         pool.deposit{value: 1 ether}(1 ether, uint256(11));

@@ -9,7 +9,8 @@ interface VectorVm {
     function toString(uint256 value) external pure returns (string memory);
 }
 
-/// @notice Twelve Poseidon(2) images. Expected outputs are circom witnesses in poseidon_vectors.json.
+/// @notice Twelve Poseidon(2) witnesses from circom. Each entry is the snarkjs witness array.
+/// Index 0 is 1, index 1 is main.out, index 2 is main.a, index 3 is main.b.
 contract PoseidonVectors {
     error Mismatch(uint256 index, uint256 got, uint256 expected);
 
@@ -20,9 +21,11 @@ contract PoseidonVectors {
         PoseidonT3 hasher = new PoseidonT3();
         for (uint256 i = 0; i < 12; i++) {
             string memory index = VM.toString(i);
-            uint256 left = VM.parseJsonUint(json, string.concat(".vectors[", index, "].left"));
-            uint256 right = VM.parseJsonUint(json, string.concat(".vectors[", index, "].right"));
-            uint256 expected = VM.parseJsonUint(json, string.concat(".vectors[", index, "].hash"));
+            uint256 one = VM.parseJsonUint(json, string.concat(".vectors[", index, "][0]"));
+            uint256 expected = VM.parseJsonUint(json, string.concat(".vectors[", index, "][1]"));
+            uint256 left = VM.parseJsonUint(json, string.concat(".vectors[", index, "][2]"));
+            uint256 right = VM.parseJsonUint(json, string.concat(".vectors[", index, "][3]"));
+            if (one != 1) revert Mismatch(i, one, 1);
             uint256[2] memory input;
             input[0] = left;
             input[1] = right;
