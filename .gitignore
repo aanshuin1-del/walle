@@ -1,0 +1,10 @@
+out/
+cache/
+lib/
+node_modules/
+circuits/build/
+*.r1cs
+*.sym
+*.wasm
+*_js/
+.DS_Store
