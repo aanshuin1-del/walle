@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twister reference client</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      background: #f4f1ea;
+      color: #1c1915;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.45;
+    }
+    main { max-width: 40rem; margin: 0 auto; padding: 1.25rem; }
+    h1 { font-size: 1.25rem; font-weight: 650; margin: 1.25rem 0 0.25rem; }
+    p { margin: 0.5rem 0; }
+    .disclaimer { border: 1px solid #1c1915; padding: 0.75rem 1rem; background: #fff; }
+    label { display: block; margin-top: 1rem; font-size: 0.875rem; }
+    input, select, button {
+      font: inherit;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    input, select {
+      margin-top: 0.25rem;
+      padding: 0.55rem 0.6rem;
+      border: 1px solid #1c1915;
+      background: #fff;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.7rem 0.8rem;
+      border: 0;
+      background: #1c1915;
+      color: #fff;
+    }
+    button:disabled { background: #b9b2a6; color: #3a342c; }
+    #setSize { margin-top: 1rem; min-height: 1.4em; font-size: 1.05rem; }
+    #warning {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: #f3d27a;
+      border: 1px solid #1c1915;
+    }
+    #warning.show { display: block; }
+    #recipient { margin-top: 1rem; word-break: break-all; }
+    #recipient dt { margin-top: 0.5rem; font-size: 0.875rem; }
+    #recipient dd { margin: 0.15rem 0 0; font-family: ui-monospace, monospace; }
+    .error { color: #8a1f1f; }
+    @media (max-width: 640px) {
+      main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="disclaimer">This is a reference client. It is not audited. Use at your own risk.</p>
+    <h1>Withdraw</h1>
+    <p id="status">Set size has not been read.</p>
+    <form id="form">
+      <label for="rpc">RPC URL</label>
+      <input id="rpc" name="rpc" type="text" autocomplete="off" spellcheck="false">
+      <label for="pool">Pool address</label>
+      <input id="pool" name="pool" type="text" autocomplete="off" spellcheck="false">
+      <label for="denom">Denomination</label>
+      <select id="denom">
+        <option value="100000000000000000">0.1 ETH</option>
+        <option value="1000000000000000000" selected>1 ETH</option>
+        <option value="10000000000000000000">10 ETH</option>
+        <option value="100000000000000000000">100 ETH</option>
+      </select>
+      <button type="submit" id="load">Load set size</button>
+    </form>
+    <p id="setSize"></p>
+    <p id="warning"></p>
+    <dl id="recipient"></dl>
+    <button type="button" id="withdraw" disabled>Withdraw</button>
+    <p id="withdrawNote"></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
