@@ -169,9 +169,21 @@ export default function DashboardPage() {
               <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">Dashboard</p>
               <h1 className="text-3xl font-semibold tracking-tight">Pools</h1>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Desk for <span className="text-foreground">{name}</span>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                Desk for <span className="text-foreground">{name}</span>
+              </p>
+              <button
+                type="button"
+                className="h-9 rounded-md border border-white/15 px-3 text-sm"
+                onClick={() => {
+                  sessionStorage.removeItem("twister-desk-name");
+                  router.push("/");
+                }}
+              >
+                Sign out
+              </button>
+            </div>
           </header>
           <LogoLoop />
 
