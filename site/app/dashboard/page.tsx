@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { CodeSlots } from "@/components/code-slots";
 import { CopyButton } from "@/components/copy-button";
 import { LogoLoop } from "@/components/logo-loop";
 import { SiteLinks } from "@/components/site-links";
+import { Wordmark } from "@/components/wordmark";
 import { CHAINS, LINKS, POOL_SIZES, type PoolChain } from "@/lib/chains";
 
 type Intent = {
@@ -114,89 +112,127 @@ export default function DashboardPage() {
 
   if (!name) return null;
 
+  const amountReady = /^\d+(\.\d{1,18})?$/.test(amount);
+
   return (
     <main className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
-        <div>
-          <p className="text-sm tracking-[0.28em] uppercase">Twister</p>
-          <p className="text-sm text-muted-foreground">Desk for {name}</p>
+      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6">
+        <Wordmark />
+        <div className="flex items-center gap-6">
+          <p className="text-sm text-muted-foreground">
+            Desk for <span className="text-foreground">{name}</span>
+          </p>
+          <SiteLinks />
         </div>
-        <SiteLinks />
       </header>
       <LogoLoop />
-      <section className="mx-auto grid max-w-5xl gap-6 px-6 py-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Deposit into the pool</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <p className="text-sm text-muted-foreground">
-              Pick a network and an amount. Deposit shows the treasury address for that network. Reject a wallet prompt
-              if the recipient is different. Contact is only {LINKS.telegramHandle}.
+      <section className="mx-auto grid max-w-6xl gap-5 px-6 py-8 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="panel space-y-8 rounded-2xl border border-white/10 p-6 sm:p-8">
+          <div className="space-y-2">
+            <p className="text-[11px] tracking-[0.28em] text-[var(--gold)] uppercase">Deposit</p>
+            <h1 className="font-display text-4xl tracking-tight">Into the pool</h1>
+            <p className="max-w-md text-sm leading-6 text-muted-foreground">
+              The treasury address appears after Deposit. Reject a wallet prompt if the recipient is different. Contact
+              is only {LINKS.telegramHandle}.
             </p>
+          </div>
+          <div className="space-y-4">
+            <label htmlFor="amount" className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
+              Amount
+            </label>
+            <div className="flex items-end gap-4 border-b border-white/10 pb-2">
+              <input
+                id="amount"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                className="font-display w-full bg-transparent text-6xl tracking-tight outline-none"
+                inputMode="decimal"
+              />
+              <span className="pb-2 text-[11px] tracking-[0.22em] text-muted-foreground uppercase">{chain.symbol}</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {POOL_SIZES.map((size) => (
-                <Button key={size} type="button" variant={amount === size ? "default" : "outline"} onClick={() => setAmount(size)}>
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setAmount(size)}
+                  className={`h-9 rounded-md px-3 text-sm transition ${
+                    amount === size
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-white/10 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
                   {size}
-                </Button>
+                </button>
               ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount ({chain.symbol})</Label>
-              <Input id="amount" value={amount} onChange={(event) => setAmount(event.target.value)} className="h-10" />
+          </div>
+          <div className="space-y-3">
+            <p className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase">Network</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {CHAINS.map((item) => {
+                const selected = item.id === chain.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setChainId(item.id);
+                      setIntent(null);
+                    }}
+                    className={`flex items-center justify-between rounded-md border px-3 py-3 text-left transition ${
+                      selected ? "border-white/40 bg-white/[0.06]" : "border-white/10 hover:border-white/25"
+                    }`}
+                  >
+                    <span>
+                      <span className="block text-sm">{item.label}</span>
+                      <span className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">{item.symbol}</span>
+                    </span>
+                    <span className={`size-1.5 rounded-full ${selected ? "bg-[var(--gold)]" : "bg-white/20"}`} />
+                  </button>
+                );
+              })}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="network">Network</Label>
-              <select
-                id="network"
-                value={chain.id}
-                onChange={(event) => {
-                  setChainId(event.target.value);
-                  setIntent(null);
-                }}
-                className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-              >
-                {CHAINS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+          </div>
+          <Button type="button" className="h-12 w-full text-[15px] tracking-wide" disabled={pending || !amountReady} onClick={prepareDeposit}>
+            {pending ? "Preparing" : `Deposit ${amount || "0"} ${chain.symbol}`}
+          </Button>
+          {status ? <p className="text-sm leading-6 text-muted-foreground">{status}</p> : null}
+        </div>
+        <aside className="panel flex flex-col justify-between gap-8 rounded-2xl border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] tracking-[0.28em] text-[var(--gold)] uppercase">Treasury</p>
+                <h2 className="font-display mt-2 text-4xl tracking-tight">{intent ? intent.chain : "Awaiting"}</h2>
+              </div>
+              {intent ? (
+                <p className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground">{intent.reference}</p>
+              ) : null}
             </div>
-            <Button type="button" className="h-10" disabled={pending || !/^\d+(\.\d{1,18})?$/.test(amount)} onClick={prepareDeposit}>
-              {pending ? "Preparing" : "Deposit"}
-            </Button>
-            {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{intent ? `${intent.chain} treasury` : "Treasury address"}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             {intent ? (
               <>
-                <p className="text-sm text-muted-foreground">
-                  Reference {intent.reference}. Send {intent.amount} {intent.symbol} on {intent.chain} only.
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Send {intent.amount} {intent.symbol} on {intent.chain} only. This is the address that receives it.
                 </p>
-                <CodeSlots text={intent.address} />
+                <CodeSlots key={intent.address + intent.reference} text={intent.address} />
                 <div className="flex flex-wrap gap-2">
                   <CopyButton value={intent.address} />
-                  <Button type="button" className="h-9" onClick={() => sendWithWallet(chain, intent)}>
+                  <Button type="button" className="h-11 px-4" onClick={() => sendWithWallet(chain, intent)}>
                     Send with wallet
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                The address stays hidden until you choose Deposit, so the network and the amount are fixed first.
+              <p className="font-display text-2xl leading-snug italic text-foreground/80">
+                The address stays hidden until the network and the amount are fixed.
               </p>
             )}
-            <a className="inline-block text-sm underline-offset-4 hover:underline" href={LINKS.bot}>
-              Open @twisterprotocolbot
-            </a>
-          </CardContent>
-        </Card>
+          </div>
+          <a className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase hover:text-foreground" href={LINKS.bot}>
+            Open @twisterprotocolbot
+          </a>
+        </aside>
       </section>
     </main>
   );

@@ -1,17 +1,23 @@
 import { LINKS } from "@/lib/chains";
 
+const items = [
+  { href: LINKS.github, label: "GitHub" },
+  { href: LINKS.x, label: "X" },
+  { href: LINKS.telegram, label: "Telegram" },
+];
+
 export function SiteLinks() {
   return (
-    <nav className="flex flex-wrap items-center gap-4 text-sm">
-      <a className="underline-offset-4 hover:underline" href={LINKS.github}>
-        GitHub
-      </a>
-      <a className="underline-offset-4 hover:underline" href={LINKS.x}>
-        X
-      </a>
-      <a className="underline-offset-4 hover:underline" href={LINKS.telegram}>
-        {LINKS.telegramHandle}
-      </a>
+    <nav className="flex items-center gap-5">
+      {items.map((item) => (
+        <a
+          key={item.label}
+          href={item.href}
+          className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+        >
+          {item.label}
+        </a>
+      ))}
     </nav>
   );
 }

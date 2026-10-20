@@ -17,11 +17,12 @@ const MARKS = [
 export function LogoLoop() {
   const row = [...MARKS, ...MARKS];
   return (
-    <div className="overflow-hidden border-y border-border/70 bg-card/40">
-      <div className="logo-marquee flex w-max gap-8 py-3 pr-8">
+    <div className="marquee-mask overflow-hidden border-y border-white/10 bg-white/[0.02]">
+      <div className="logo-marquee flex w-max items-center gap-8 py-3.5 pr-8">
         {row.map((mark, index) => (
-          <span key={`${mark}-${index}`} className="font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
-            {mark}
+          <span key={`${mark}-${index}`} className="flex items-center gap-8">
+            <span className="font-display text-[15px] tracking-[0.18em] text-foreground/80 uppercase">{mark}</span>
+            <span className="size-1 rounded-full bg-[var(--gold)]" aria-hidden />
           </span>
         ))}
       </div>
