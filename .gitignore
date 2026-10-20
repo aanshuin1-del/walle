@@ -11,3 +11,7 @@ circuits/build/
 *.zkey
 verification_key.json
 .DS_Store
+.env
+.env.*
+site/.env.local
+site/data/

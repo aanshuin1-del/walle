@@ -82,6 +82,8 @@ python3 -m http.server 43123 --bind 127.0.0.1
 
 Open `http://127.0.0.1:43123/`. The page reads `liveSetSize` from the RPC URL you type. It does not ship one, and it does not build a proof.
 
+The public desk is `site/`. It lists a treasury address per network and does not create a secret key. Run it with `npm install` and `npm run dev -- --port 41731 --hostname 127.0.0.1` from `site/`. The Telegram listener is `node bot/poll.mjs` in that directory. See `site/README.md`.
+
 Health check, from `monitoring/`:
 
 ```
