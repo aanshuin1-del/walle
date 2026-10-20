@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { CodeSlots } from "@/components/code-slots";
 import { CopyButton } from "@/components/copy-button";
 import { LogoLoop } from "@/components/logo-loop";
 import { LogoMark } from "@/components/logo-mark";
 import { SiteLinks } from "@/components/site-links";
-import { Vortex } from "@/components/vortex";
 import { CHAINS, LINKS, POOL_SIZES, type PoolChain } from "@/lib/chains";
 
 type Intent = {
@@ -20,7 +18,7 @@ type Intent = {
   notified: number;
 };
 
-type Filter = "all" | "evm" | "bitcoin" | "solana" | "tron";
+type Tab = "deposit" | "withdraw";
 
 function parseAmount(value: string): bigint | null {
   if (!/^\d+(\.\d{1,18})?$/.test(value)) return null;
@@ -33,21 +31,16 @@ function parseAmount(value: string): bigint | null {
   }
 }
 
-function shortAddress(address: string) {
-  if (address.length < 16) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
   const [chainId, setChainId] = useState(CHAINS[0].id);
   const [amount, setAmount] = useState("1");
+  const [tab, setTab] = useState<Tab>("deposit");
   const [intent, setIntent] = useState<Intent | null>(null);
-  const [history, setHistory] = useState<Intent[]>([]);
   const [status, setStatus] = useState("");
   const [pending, setPending] = useState(false);
+  const [referenceLookup, setReferenceLookup] = useState("");
 
   useEffect(() => {
     const stored = sessionStorage.getItem("twister-desk-name");
@@ -59,36 +52,45 @@ export default function DashboardPage() {
   }, [router]);
 
   const chain = CHAINS.find((item) => item.id === chainId) ?? CHAINS[0];
-  const visible = CHAINS.filter((item) => filter === "all" || item.kind === filter);
 
-  async function prepareDeposit(selected: PoolChain, nextAmount: string) {
-    setChainId(selected.id);
+  function selectChain(nextId: string) {
+    setChainId(nextId);
+    setIntent(null);
+    setStatus("");
+  }
+
+  function selectAmount(nextAmount: string) {
     setAmount(nextAmount);
+    setIntent(null);
+    setStatus("");
+  }
+
+  async function prepareDeposit() {
     setPending(true);
     setStatus("");
+    setIntent(null);
     try {
       const response = await fetch("/api/deposit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, chainId: selected.id, amount: nextAmount }),
+        body: JSON.stringify({ name, chainId: chain.id, amount }),
       });
       const body = (await response.json()) as Intent & { error?: string };
       if (!response.ok) {
-        setStatus(body.error ?? "The desk could not prepare this deposit.");
+        setStatus(body.error ?? "The pool could not prepare this deposit.");
         return;
       }
       setIntent(body);
-      setHistory((current) => [body, ...current].slice(0, 8));
       setStatus(
         body.notified > 0
-          ? "The Telegram operator was notified. The address in this panel receives this deposit."
-          : "The address in this panel receives this deposit. Send /operator to @twisterprotocolbot so the notice reaches you.",
+          ? "Deposit address is ready. The operator was notified on Telegram."
+          : "Deposit address is ready. Send /operator to @twisterprotocolbot if you want the notice there.",
       );
-      if (selected.kind === "evm" && selected.chainId !== undefined) {
-        await sendWithWallet(selected, body);
+      if (chain.kind === "evm" && chain.chainId !== undefined) {
+        await sendWithWallet(chain, body);
       }
     } catch {
-      setStatus("The desk could not reach the deposit API.");
+      setStatus("The pool could not reach the deposit API.");
     } finally {
       setPending(false);
     }
@@ -98,7 +100,7 @@ export default function DashboardPage() {
     const wei = parseAmount(prepared.amount);
     const ethereum = (window as Window & { ethereum?: { request: (args: unknown) => Promise<unknown> } }).ethereum;
     if (!ethereum || selected.kind !== "evm" || selected.chainId === undefined || wei === null) {
-      setStatus("This network is paid by copying the address into your own wallet.");
+      setStatus("Copy the deposit address into your wallet and send the amount on this network only.");
       return;
     }
     try {
@@ -117,205 +119,148 @@ export default function DashboardPage() {
           },
         ],
       });
-      setStatus(`Wallet returned ${String(tx)}. Confirm the recipient matches the address on this pool.`);
+      setStatus(`Wallet returned ${String(tx)}. The recipient must match the deposit address on this page.`);
     } catch {
-      setStatus("The wallet did not send. You can still copy the address and pay it from your own wallet.");
+      setStatus("The wallet did not send. Copy the deposit address and pay it from your own wallet.");
     }
   }
 
   if (!name) return null;
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-4 lg:flex lg:flex-col lg:items-stretch lg:justify-between lg:border-r lg:border-b-0 lg:px-5 lg:py-6">
-        <div className="space-y-6">
-          <span className="inline-flex items-center gap-2.5">
-            <LogoMark className="size-10" />
-            <span>
-              <span className="block text-sm font-semibold">Twister</span>
-              <span className="block text-xs text-muted-foreground">Pool desk</span>
-            </span>
-          </span>
-          <nav className="hidden gap-1 lg:grid">
-            <span className="rounded-md bg-white/10 px-3 py-2 text-sm">Pools</span>
-            <a className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-white/5" href="#deposit">
-              Deposit
-            </a>
-            <a className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-white/5" href="#session">
-              This session
-            </a>
-          </nav>
+    <div className="min-h-screen bg-[#070807] text-white">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
+        <span className="inline-flex items-center gap-2.5">
+          <LogoMark className="size-9" />
+          <span className="text-sm font-semibold tracking-tight">Twister</span>
+        </span>
+        <div className="flex flex-wrap items-center gap-4">
+          <SiteLinks />
+          <span className="text-xs text-white/50">{name}</span>
+          <button
+            type="button"
+            className="h-8 rounded-md border border-white/15 px-3 text-xs"
+            onClick={() => {
+              sessionStorage.removeItem("twister-desk-name");
+              router.push("/");
+            }}
+          >
+            Sign out
+          </button>
         </div>
-        <div className="space-y-3">
-          <div className="lg:hidden">
-            <SiteLinks />
-          </div>
-          <div className="hidden lg:block">
-            <SiteLinks stacked />
-          </div>
-          <a className="hidden text-xs text-muted-foreground hover:text-foreground lg:inline" href={LINKS.bot}>
-            @twisterprotocolbot
-          </a>
-        </div>
-      </aside>
+      </header>
+      <LogoLoop />
 
-      <div className="relative min-w-0">
-        <div className="pointer-events-none absolute inset-0 opacity-50">
-          <Vortex />
-        </div>
-        <div className="relative z-10">
-          <header className="flex flex-wrap items-end justify-between gap-3 px-4 py-5 sm:px-6">
-            <div>
-              <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">Dashboard</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Pools</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-muted-foreground">
-                Desk for <span className="text-foreground">{name}</span>
-              </p>
+      <main className="mx-auto w-full max-w-[560px] px-4 py-10">
+        <label className="text-xs tracking-[0.16em] text-white/45 uppercase" htmlFor="pool-network">
+          Pool
+        </label>
+        <select
+          id="pool-network"
+          value={chain.id}
+          onChange={(event) => selectChain(event.target.value)}
+          className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-[#121412] px-3 text-sm outline-none"
+        >
+          {CHAINS.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label} · {item.symbol}
+            </option>
+          ))}
+        </select>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {POOL_SIZES.map((size) => {
+            const selected = amount === size;
+            return (
               <button
+                key={size}
                 type="button"
-                className="h-9 rounded-md border border-white/15 px-3 text-sm"
-                onClick={() => {
-                  sessionStorage.removeItem("twister-desk-name");
-                  router.push("/");
-                }}
+                onClick={() => selectAmount(size)}
+                className={`flex h-24 flex-col items-center justify-center rounded-xl border ${
+                  selected ? "border-[#00d395] bg-[#00d395]/10" : "border-white/10 bg-[#121412] hover:border-white/25"
+                }`}
               >
-                Sign out
+                <span className="text-2xl font-semibold tracking-tight">{size}</span>
+                <span className="mt-1 text-xs text-white/55">{chain.symbol}</span>
               </button>
-            </div>
-          </header>
-          <LogoLoop />
-
-          <div className="grid gap-5 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-            <section className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    ["all", "All pools"],
-                    ["evm", "EVM"],
-                    ["bitcoin", "Bitcoin"],
-                    ["solana", "Solana"],
-                    ["tron", "Tron"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setFilter(id)}
-                    className={`h-8 rounded-md px-3 text-xs ${filter === id ? "bg-primary text-primary-foreground" : "border border-white/15 text-muted-foreground"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {visible.map((item) => {
-                  const active = item.id === chain.id;
-                  return (
-                    <article key={item.id} className={`rounded-xl border bg-black/75 p-4 ${active ? "border-white/40" : "border-white/10"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <LogoMark className="size-10" />
-                          <div>
-                            <h2 className="font-medium">{item.label}</h2>
-                            <p className="text-xs text-muted-foreground">{item.symbol} pools</p>
-                          </div>
-                        </div>
-                        <p className="font-mono text-[11px] text-muted-foreground" title={item.address}>
-                          {shortAddress(item.address)}
-                        </p>
-                      </div>
-                      <div className="mt-4 grid grid-cols-4 gap-2">
-                        {POOL_SIZES.map((size) => {
-                          const selected = active && amount === size;
-                          return (
-                            <button
-                              key={size}
-                              type="button"
-                              onClick={() => {
-                                setChainId(item.id);
-                                setAmount(size);
-                                setIntent(null);
-                              }}
-                              className={`h-10 rounded-md text-sm ${selected ? "bg-primary text-primary-foreground" : "border border-white/10 text-muted-foreground hover:text-foreground"}`}
-                            >
-                              {size}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <Button
-                        type="button"
-                        className="mt-4 h-10 w-full"
-                        disabled={pending}
-                        onClick={() => prepareDeposit(item, active ? amount : "1")}
-                      >
-                        {pending && active ? "Preparing" : `Deposit ${active ? amount : "1"} ${item.symbol}`}
-                      </Button>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-
-            <aside id="deposit" className="h-fit space-y-4 rounded-xl border border-white/10 bg-black/80 p-5 xl:sticky xl:top-4">
-              <div className="flex items-center gap-3">
-                <LogoMark className="size-10" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Selected pool</p>
-                  <h2 className="text-lg font-semibold">
-                    {amount} {chain.symbol} · {chain.label}
-                  </h2>
-                </div>
-              </div>
-              {intent ? (
-                <div className="space-y-4">
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Reference for this deposit. Send {intent.amount} {intent.symbol} on {intent.chain} to the address
-                    that lands below.
-                  </p>
-                  <CodeSlots key={intent.reference} text={intent.reference} />
-                  <p className="font-mono text-xs leading-5 break-all">{intent.address}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <CopyButton value={intent.address} />
-                    <Button type="button" className="h-11" onClick={() => sendWithWallet(chain, intent)}>
-                      Send with wallet
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Pick a size, then Deposit. The pool pays {chain.address}. Reject a wallet prompt if the recipient is
-                  different.
-                </p>
-              )}
-              {status ? <p className="text-sm leading-6 text-muted-foreground">{status}</p> : null}
-              <a className="inline-block text-xs text-muted-foreground hover:text-foreground" href={LINKS.bot}>
-                Open @twisterprotocolbot
-              </a>
-            </aside>
-          </div>
-
-          <section id="session" className="px-4 pb-10 sm:px-6">
-            <h2 className="text-lg font-semibold">This session</h2>
-            {history.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">Deposits you prepare on this desk show up here.</p>
-            ) : (
-              <ul className="mt-3 divide-y divide-white/10 rounded-xl border border-white/10 bg-black/75">
-                {history.map((item) => (
-                  <li key={item.reference} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                    <span>
-                      {item.amount} {item.symbol} · {item.chain}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">{item.reference}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            );
+          })}
         </div>
-      </div>
+
+        <div className="mt-5 grid grid-cols-2 rounded-xl bg-[#121412] p-1">
+          {(["deposit", "withdraw"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setTab(item)}
+              className={`h-10 rounded-lg text-sm capitalize ${tab === item ? "bg-[#00d395] font-semibold text-black" : "text-white/70"}`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {tab === "deposit" ? (
+          <section className="mt-5 space-y-4">
+            <p className="text-sm leading-6 text-white/60">
+              Deposit {amount} {chain.symbol} on {chain.label}. The address is created for this deposit when you press
+              the button. Send only on {chain.label}.
+            </p>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={prepareDeposit}
+              className="h-12 w-full rounded-xl bg-[#00d395] text-sm font-semibold text-black disabled:opacity-60"
+            >
+              {pending ? "Preparing" : "Deposit"}
+            </button>
+            {intent ? (
+              <div className="space-y-4 rounded-xl border border-[#00d395]/40 bg-[#101210] p-4">
+                <div>
+                  <p className="text-xs tracking-[0.16em] text-[#00d395] uppercase">Deposit address</p>
+                  <p className="mt-2 font-mono text-sm leading-6 break-all">{intent.address}</p>
+                </div>
+                <CodeSlots key={intent.reference} text={intent.reference} />
+                <div className="flex flex-wrap gap-2">
+                  <CopyButton value={intent.address} />
+                  <button
+                    type="button"
+                    className="h-11 rounded-md bg-[#00d395] px-4 text-sm font-semibold text-black"
+                    onClick={() => sendWithWallet(chain, intent)}
+                  >
+                    Send with wallet
+                  </button>
+                </div>
+                <p className="text-xs leading-5 text-white/50">
+                  {intent.amount} {intent.symbol} · {intent.chain}. Contact {LINKS.telegramHandle}.
+                </p>
+              </div>
+            ) : null}
+            {status ? <p className="text-sm leading-6 text-white/60">{status}</p> : null}
+          </section>
+        ) : (
+          <section className="mt-5 space-y-3">
+            <p className="text-sm leading-6 text-white/60">
+              Paste the deposit reference from this desk. Twister does not build a withdrawal proof and does not create
+              a spending key.
+            </p>
+            <textarea
+              value={referenceLookup}
+              onChange={(event) => setReferenceLookup(event.target.value)}
+              placeholder="TW-••••••••"
+              className="h-28 w-full rounded-xl border border-white/10 bg-[#121412] p-3 font-mono text-sm outline-none"
+            />
+            <p className="text-sm text-white/60">
+              {/^TW-[0-9A-F]{8}$/i.test(referenceLookup.trim())
+                ? "That reference matches a desk deposit. The funds were sent to the pool address shown on Deposit."
+                : "A reference looks like TW- followed by 8 characters."}
+            </p>
+            <a className="inline-block text-sm text-[#00d395]" href={LINKS.telegram}>
+              Ask {LINKS.telegramHandle}
+            </a>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
