@@ -128,7 +128,7 @@ export default function DashboardPage() {
   if (!name) return null;
 
   return (
-    <div className="min-h-screen bg-[#070807] text-white">
+    <div className="min-h-screen bg-[#09090b] text-white">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
         <span className="inline-flex items-center gap-2.5">
           <LogoMark className="size-9" />
@@ -159,7 +159,7 @@ export default function DashboardPage() {
           id="pool-network"
           value={chain.id}
           onChange={(event) => selectChain(event.target.value)}
-          className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-[#121412] px-3 text-sm outline-none"
+          className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-[#141418] px-3 text-sm outline-none"
         >
           {CHAINS.map((item) => (
             <option key={item.id} value={item.id}>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => selectAmount(size)}
                 className={`flex h-24 flex-col items-center justify-center rounded-xl border ${
-                  selected ? "border-[#00d395] bg-[#00d395]/10" : "border-white/10 bg-[#121412] hover:border-white/25"
+                  selected ? "border-white bg-white/10" : "border-white/10 bg-[#141418] hover:border-white/30"
                 }`}
               >
                 <span className="text-2xl font-semibold tracking-tight">{size}</span>
@@ -187,13 +187,13 @@ export default function DashboardPage() {
           })}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 rounded-xl bg-[#121412] p-1">
+        <div className="mt-5 grid grid-cols-2 rounded-xl bg-[#141418] p-1">
           {(["deposit", "withdraw"] as const).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setTab(item)}
-              className={`h-10 rounded-lg text-sm capitalize ${tab === item ? "bg-[#00d395] font-semibold text-black" : "text-white/70"}`}
+              className={`h-10 rounded-lg text-sm capitalize ${tab === item ? "bg-white font-semibold text-black" : "text-white/70"}`}
             >
               {item}
             </button>
@@ -210,14 +210,14 @@ export default function DashboardPage() {
               type="button"
               disabled={pending}
               onClick={prepareDeposit}
-              className="h-12 w-full rounded-xl bg-[#00d395] text-sm font-semibold text-black disabled:opacity-60"
+              className="h-12 w-full rounded-xl bg-white text-sm font-semibold text-black disabled:opacity-60"
             >
               {pending ? "Preparing" : "Deposit"}
             </button>
             {intent ? (
-              <div className="space-y-4 rounded-xl border border-[#00d395]/40 bg-[#101210] p-4">
+              <div className="space-y-4 rounded-xl border border-white/25 bg-[#101014] p-4">
                 <div>
-                  <p className="text-xs tracking-[0.16em] text-[#00d395] uppercase">Deposit address</p>
+                  <p className="text-xs tracking-[0.16em] text-white/70 uppercase">Deposit address</p>
                   <p className="mt-2 font-mono text-sm leading-6 break-all">{intent.address}</p>
                 </div>
                 <CodeSlots key={intent.reference} text={intent.reference} />
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                   <CopyButton value={intent.address} />
                   <button
                     type="button"
-                    className="h-11 rounded-md bg-[#00d395] px-4 text-sm font-semibold text-black"
+                    className="h-11 rounded-md bg-white px-4 text-sm font-semibold text-black"
                     onClick={() => sendWithWallet(chain, intent)}
                   >
                     Send with wallet
@@ -248,14 +248,14 @@ export default function DashboardPage() {
               value={referenceLookup}
               onChange={(event) => setReferenceLookup(event.target.value)}
               placeholder="TW-••••••••"
-              className="h-28 w-full rounded-xl border border-white/10 bg-[#121412] p-3 font-mono text-sm outline-none"
+              className="h-28 w-full rounded-xl border border-white/10 bg-[#141418] p-3 font-mono text-sm outline-none"
             />
             <p className="text-sm text-white/60">
               {/^TW-[0-9A-F]{8}$/i.test(referenceLookup.trim())
                 ? "That reference matches a desk deposit. The funds were sent to the pool address shown on Deposit."
                 : "A reference looks like TW- followed by 8 characters."}
             </p>
-            <a className="inline-block text-sm text-[#00d395]" href={LINKS.telegram}>
+            <a className="inline-block text-sm text-white underline underline-offset-4" href={LINKS.telegram}>
               Ask {LINKS.telegramHandle}
             </a>
           </section>
