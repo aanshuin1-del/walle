@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { chainById } from "@/lib/chains";
-import { notifyOperators, recordIntent } from "@/lib/notify";
+import { notifyOpened, recordIntent } from "@/lib/notify";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -31,6 +31,6 @@ export async function POST(request: Request) {
     reference: `TW-${randomBytes(4).toString("hex").toUpperCase()}`,
   };
   await recordIntent(intent);
-  const notified = await notifyOperators(intent);
-  return NextResponse.json({ ...intent, notified });
+  const notified = await notifyOpened(intent);
+  return NextResponse.json({ ...intent, notified, expiresInSeconds: 300 });
 }

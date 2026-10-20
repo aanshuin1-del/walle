@@ -54,11 +54,15 @@ async function readOperators() {
   }
 }
 
-async function addOperator(chatId) {
+async function claimOperator(chatId) {
+  const code = process.env.TELEGRAM_OPERATOR_CODE;
   const current = await readOperators();
-  if (current.includes(chatId)) return;
+  if (current[0] === chatId) return "already";
+  if (current.length > 0) return "taken";
+  if (!code) return "missing";
   await mkdir(dataDir, { recursive: true });
-  await writeFile(operatorsFile, JSON.stringify([...current, chatId], null, 2));
+  await writeFile(operatorsFile, JSON.stringify([chatId], null, 2));
+  return "claimed";
 }
 
 async function send(chatId, text) {
@@ -67,10 +71,6 @@ async function send(chatId, text) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, text }),
   });
-}
-
-function reference() {
-  return `TW-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
 }
 
 let offset = 0;
@@ -87,23 +87,32 @@ while (true) {
     const chatId = String(message.chat.id);
     const text = typeof message.text === "string" ? message.text.trim() : "";
     if (text.startsWith("/operator")) {
-      await addOperator(chatId);
-      await send(chatId, "This chat will receive deposit intents from the desk.");
+      const given = text.slice("/operator".length).trim();
+      if (given !== process.env.TELEGRAM_OPERATOR_CODE) {
+        await send(chatId, "That code does not match. Deposit notices stay with the operator.");
+        continue;
+      }
+      const result = await claimOperator(chatId);
+      const reply = {
+        claimed: "This chat is the only one that receives deposit notices.",
+        already: "This chat already receives the deposit notices.",
+        taken: "Deposit notices already go to the operator.",
+        missing: "The desk has no operator code configured.",
+      }[result];
+      await send(chatId, reply);
     } else if (text.startsWith("/deposit")) {
       await send(chatId, `Pool treasury addresses\n\n${addressText()}\n\nContact @Twisteradmin`);
     } else if (text.startsWith("/wallet") || text.startsWith("/start")) {
-      const code = reference();
       await send(
         chatId,
         [
           "Twister pool desk",
-          `Reference ${code}`,
-          "Send funds only to the treasury address for the network you chose. This bot does not create a secret key.",
+          "A deposit address appears when you press Deposit. The transaction id appears after the wallet pays, inside a 5 minute window.",
+          "This bot does not create a secret key.",
           "",
           addressText(),
           "",
           "Contact @Twisteradmin",
-          "Operators: send /operator to receive deposit notices.",
         ].join("\n"),
       );
     }
