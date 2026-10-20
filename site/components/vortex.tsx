@@ -40,8 +40,8 @@ export function Vortex() {
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, width, height);
       const glow = context.createRadialGradient(width * 0.55, height * 0.42, 20, width * 0.5, height * 0.5, width * 0.55);
-      glow.addColorStop(0, "rgba(196, 154, 74, 0.16)");
-      glow.addColorStop(0.45, "rgba(40, 58, 92, 0.12)");
+      glow.addColorStop(0, "rgba(255, 255, 255, 0.08)");
+      glow.addColorStop(0.45, "rgba(255, 255, 255, 0.03)");
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, width, height);
@@ -56,7 +56,7 @@ export function Vortex() {
         const y = cy + Math.sin(particle.angle) * particle.radius * 0.58;
         const fade = Math.max(0.12, 1 - particle.radius / (Math.min(width, height) * 0.55));
         context.beginPath();
-        context.fillStyle = particle.gold ? `rgba(226, 196, 140, ${0.22 + fade * 0.45})` : `rgba(210, 220, 235, ${0.12 + fade * 0.3})`;
+        context.fillStyle = particle.gold ? `rgba(255, 255, 255, ${0.28 + fade * 0.5})` : `rgba(180, 188, 200, ${0.12 + fade * 0.28})`;
         context.arc(x, y, particle.size, 0, Math.PI * 2);
         context.fill();
       }

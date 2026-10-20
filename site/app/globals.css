@@ -232,3 +232,12 @@ body::before {
 @keyframes slot-sweep {
   to { transform: translateX(120%); }
 }
+
+.slot-land {
+  animation: slot-land 0.38s cubic-bezier(0.2, 1.45, 0.36, 1);
+}
+
+@keyframes slot-land {
+  0% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}

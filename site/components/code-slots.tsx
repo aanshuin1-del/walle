@@ -2,32 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-const GLYPHS = "abcdef0123456789ABCDEFxT";
+const GLYPHS = "ABCDEF0123456789";
 
-/** Reveals an address by settling one character at a time. */
-export function CodeSlots({ text }: { text: string }) {
-  const [shown, setShown] = useState(() => text.replace(/[A-Za-z0-9]/g, "·"));
+function Slot({ char, delay }: { char: string; delay: number }) {
+  const [glyph, setGlyph] = useState("·");
+  const [landed, setLanded] = useState(false);
 
   useEffect(() => {
-    let step = 0;
+    const started = Date.now();
     const timer = window.setInterval(() => {
-      step += 1;
-      const next = text
-        .split("")
-        .map((character, index) => {
-          if (step > index + 4) return character;
-          return GLYPHS[Math.floor(Math.random() * GLYPHS.length)] ?? character;
-        })
-        .join("");
-      setShown(next);
-      if (step > text.length + 6) window.clearInterval(timer);
-    }, 28);
+      if (Date.now() - started >= delay) {
+        setGlyph(char);
+        setLanded(true);
+        window.clearInterval(timer);
+        return;
+      }
+      setGlyph(GLYPHS[Math.floor(Math.random() * GLYPHS.length)] ?? char);
+    }, 45);
     return () => window.clearInterval(timer);
-  }, [text]);
+  }, [char, delay]);
 
   return (
-    <div className="slot-plate rounded-md border border-white/10 bg-black/30 px-4 py-4">
-      <p className="font-mono text-[13px] leading-6 break-all tracking-[0.04em] text-foreground">{shown}</p>
+    <span
+      className={`grid h-10 w-6 place-items-center rounded-md border border-white/15 bg-black font-mono text-xs ${landed ? "slot-land border-white/40" : ""}`}
+    >
+      {glyph}
+    </span>
+  );
+}
+
+/** One-time code whose characters spring into their slots. */
+export function CodeSlots({ text }: { text: string }) {
+  return (
+    <div className="flex flex-wrap gap-1.5" aria-label={text}>
+      {text.split("").map((char, index) => (
+        <Slot key={`${text}-${index}`} char={char} delay={90 + index * 55} />
+      ))}
     </div>
   );
 }

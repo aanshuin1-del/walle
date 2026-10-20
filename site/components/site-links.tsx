@@ -3,17 +3,17 @@ import { LINKS } from "@/lib/chains";
 const items = [
   { href: LINKS.github, label: "GitHub" },
   { href: LINKS.x, label: "X" },
-  { href: LINKS.telegram, label: "Telegram" },
+  { href: LINKS.telegram, label: LINKS.telegramHandle },
 ];
 
-export function SiteLinks() {
+export function SiteLinks({ stacked = false }: { stacked?: boolean }) {
   return (
-    <nav className="flex items-center gap-5">
+    <nav className={stacked ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-4"}>
       {items.map((item) => (
         <a
-          key={item.label}
+          key={item.href}
           href={item.href}
-          className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+          className="text-xs tracking-wide text-muted-foreground transition-colors hover:text-foreground"
         >
           {item.label}
         </a>
